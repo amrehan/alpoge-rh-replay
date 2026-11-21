@@ -145,6 +145,20 @@ python3 tracker/replay_evidence.py reuse-check M000001 /work/imported/receipt \
 
 The receiver checks the native platform, pins, source and object hashes, then runs the original Lake targets with rebuilding and remote cache downloads disabled. Successful JSON output lists the checked targets and those absent from the before-inventory. Timed receipts also report new targets per producer Lake hour. For a wave, count distinct accepted new IDs and sum producer build times once per receipt. This measures target reuse. The final Main build, axiom audit and fresh kernel replay remain separate milestones.
 
+### Profile existing worker evidence
+
+Capture an inventory on the prepared worker and copy an existing Lake build log; neither step needs a new `Main` build:
+
+```bash
+python3 tracker/replay_evidence.py inventory /path/to/lean > worker.json
+python3 tracker/work_profile.py worker.json --log existing-build.log --slots 8 \
+  --include-module-timings > work-profile.json
+```
+
+The read-only profile checks inventory pins and IDs, counts locally missing objects and timing coverage, and reports depth and missing-dependency chain counts. It parses rounded Lake `Built Module (time)` observations, using the median per module and counting shared dependencies once. `--include-module-timings` includes module IDs, median seconds and observation counts for sharing without raw logs; input references contain filenames and SHA-256 digests instead of host directories. Cached nodes cost zero in the model, but their imports are still traversed; object presence does not establish valid reuse.
+
+Missing durations suppress the weighted model. To explore an explicit assumption scenario, add `--assume-module-seconds SECONDS`. The model reports the weighted critical path, total module seconds divided by effective slots, and the larger of those idealized bounds. These are not forecasts: elapsed timings depend on hardware and contention, and the model excludes stale rebuilds, transfers, review delays and final statement/axiom/kernel checks. A primary-worker profile needs that worker's inventory; a volunteer inventory cannot describe primary progress.
+
 ## Troubleshoot a Lean version mismatch
 
 If `Cache/Requests.lean` reports a missing `Lake.PackageEntrySrc.path` case and the trace shows Lean 4.35.0, update your checkout. The replay uses Lean 4.33.1, and the verifier now calls that version explicitly through elan. Keep elan on PATH, then retry in a new directory on the build volume.
