@@ -25,7 +25,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y elan
           elan toolchain install leanprover/lean4:v4.33.1
-      - name: Exercise twenty builds, restart and receiver reuse
+      - name: Exercise builds, restart, receiver reuse and archive preflight
         env:
           REPLAY_NATIVE_TEST: '1'
-        run: python3 -m unittest discover -s tracker -p 'test_worker.py' -v
+        run: |
+          python3 -m unittest discover -s tracker -p 'test_worker.py' -v
+          python3 -m unittest discover -s tracker -p 'test_bundle_preflight.py' -v

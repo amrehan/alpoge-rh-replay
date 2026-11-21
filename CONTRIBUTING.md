@@ -145,6 +145,20 @@ python3 tracker/replay_evidence.py reuse-check M000001 /work/imported/receipt \
 
 The receiver checks the native platform, pins, source and object hashes, then runs the original Lake targets with rebuilding and remote cache downloads disabled. Successful JSON output lists the checked targets and those absent from the before-inventory. Timed receipts also report new targets per producer Lake hour. For a wave, count distinct accepted new IDs and sum producer build times once per receipt. This measures target reuse. The final Main build, axiom audit and fresh kernel replay remain separate milestones.
 
+### Diagnose overlapping archive members
+
+Before combining bundles, compare them offline using the expected `bundle_sha256` values from their producer receipts:
+
+```bash
+python3 tracker/bundle_preflight.py \
+  --archive worker-a.tar.gz EXPECTED_A_SHA256 \
+  --archive worker-b.tar.gz EXPECTED_B_SHA256 > overlap-report.json
+```
+
+The tool streams gzip tar archives, verifies their compressed SHA-256 digests, and reports differing file hashes grouped by module, with archive provenance. It never extracts or installs files. Accepted files must be under `lib/lean/` or `ir/`; safe directory entries and leading `./` prefixes are allowed. Duplicate file paths, traversal, links, devices and malformed inputs are rejected.
+
+Exit **0** means no differing artifact members other than `.trace` or `.setup.json`; **1** reports other differing members; **2** means invalid input. Raw `.trace` and generated `.setup.json` input differences appear separately as informational `trace_differences` and `setup_differences`, since path and log metadata can differ without preventing reuse. The tool does not interpret that metadata. Even differing `.olean` bytes alone do not establish invalid proofs or failed reuse, and a clear report does not establish compatibility. This diagnostic neither repairs the Google aggregate reuse failure nor replaces native-platform, pinned-input, receiver `--no-build --no-cache`, or final Main kernel checks.
+
 ## Troubleshoot a Lean version mismatch
 
 If `Cache/Requests.lean` reports a missing `Lake.PackageEntrySrc.path` case and the trace shows Lean 4.35.0, update your checkout. The replay uses Lean 4.33.1, and the verifier now calls that version explicitly through elan. Keep elan on PATH, then retry in a new directory on the build volume.
